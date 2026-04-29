@@ -71,6 +71,26 @@ def search(query_vector: list[float], top_k: int = 10) -> list[dict]:
     ]
 
 
+def get_all_vectors() -> list[dict]:
+    client = _get_client()
+    results = []
+    offset = None
+    while True:
+        records, offset = client.scroll(
+            collection_name=_collection(),
+            with_vectors=True,
+            with_payload=True,
+            limit=256,
+            offset=offset,
+        )
+        for r in records:
+            if r.vector is not None:
+                results.append({"vector": r.vector, "payload": r.payload or {}})
+        if offset is None:
+            break
+    return results
+
+
 def list_source_files() -> list[str]:
     client = _get_client()
     seen: set[str] = set()

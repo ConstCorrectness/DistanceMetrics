@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from backend.jobs import create_job, get_job, update_job
 from backend.parser import parse_file, row_to_text, SUPPORTED_EXTENSIONS
 from backend.embedder import embed_texts, BATCH_SIZE
-from backend.vectordb import ensure_collection, upsert_points, search, list_source_files
+from backend.vectordb import ensure_collection, upsert_points, search, list_source_files, get_all_vectors
 
 load_dotenv()
 
@@ -112,6 +112,24 @@ def semantic_search(req: SearchRequest):
 @app.get("/collections")
 def get_collections():
     return {"files": list_source_files()}
+
+
+@app.get("/vectors")
+def all_vectors():
+    points = get_all_vectors()
+    return {"points": points, "count": len(points)}
+
+
+class EmbedRequest(BaseModel):
+    query: str
+
+
+@app.post("/embed")
+def embed_query(req: EmbedRequest):
+    if not req.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    vectors = embed_texts([req.query])
+    return {"vector": vectors[0]}
 
 
 @app.get("/health")
