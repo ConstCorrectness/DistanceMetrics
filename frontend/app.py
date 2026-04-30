@@ -1,17 +1,21 @@
 import time
+from pathlib import Path
+
 import numpy as np
 import httpx
+import yaml
 import streamlit as st
 from sklearn.decomposition import PCA
 import plotly.graph_objects as go
 
 API_BASE = "http://localhost:8000"
+INTENTS_PATH = Path(__file__).parent.parent / "intents.yaml"
 
 st.set_page_config(page_title="Semantic Search", page_icon="🔍", layout="wide")
 st.title("🔍 Semantic Search")
 
-tab_upload, tab_search, tab_viz, tab_files = st.tabs(
-    ["Upload", "Search", "Visualize", "Indexed Files"]
+tab_upload, tab_search, tab_viz, tab_intents, tab_files = st.tabs(
+    ["Upload", "Search", "Visualize", "Intents", "Indexed Files"]
 )
 
 
@@ -415,6 +419,455 @@ with tab_viz:
         else:
             st.markdown("### Results")
             st.caption("Will populate once you run a query.")
+
+
+# ---------------------------------------------------------------------------
+# Intents tab
+# ---------------------------------------------------------------------------
+
+# Extra scenario utterances per intent to widen cluster spread
+_EXTRA: dict[str, dict[str, list[str]]] = {
+    "benevolence": {
+        "view_events": [
+            "what's happening this weekend",
+            "any local events near me",
+            "show me upcoming activities",
+            "are there community events I can attend",
+            "I'm looking for things to do",
+        ],
+        "view_wishlists": [
+            "show me the wish lists",
+            "what do people want as gifts",
+            "let me see saved wishlists",
+        ],
+        "buy_gifts": [
+            "I need gift ideas for my partner",
+            "help me find a present",
+            "what should I get for a birthday",
+            "I want to send someone a gift",
+            "suggest something to buy for a friend",
+        ],
+    },
+    "remembot": {
+        "remember": [
+            "save this for me",
+            "don't let me forget this",
+            "make a note of this",
+            "jot this down",
+            "keep track of this",
+        ],
+        "recall": [
+            "what did I save earlier",
+            "remind me what I noted",
+            "show me my saved items",
+            "what have I been remembering",
+            "look up what I stored",
+        ],
+    },
+    "moneyshare": {
+        "avoid_fee": [
+            "how do I not get charged a fee",
+            "help me waive this penalty",
+            "I don't want to pay an overdraft fee",
+            "can I get this fee removed",
+        ],
+        "request_loan": [
+            "can I borrow some money",
+            "I need cash quickly",
+            "give me a short term loan",
+            "I need to borrow a little to cover something",
+            "advance me some funds",
+        ],
+    },
+    "foodshare": {
+        "request_food": [
+            "I need food",
+            "looking for something to eat",
+            "where can I find a meal",
+            "I haven't eaten and need help",
+            "can someone share food with me",
+        ],
+        "share_food": [
+            "I made too much and want to give some away",
+            "I want to donate food",
+            "I have leftovers to share",
+            "someone can have the rest of my food",
+        ],
+    },
+    "billpayshare": {
+        "request_bill_help": [
+            "can someone help me pay my utilities",
+            "I can't cover my electric bill this month",
+            "I need help splitting this bill",
+            "my bill is overdue and I need assistance",
+        ],
+    },
+    "bloodshare": {
+        "request_blood": [
+            "I need a blood donor urgently",
+            "looking for blood type O positive",
+            "can someone donate blood for a patient",
+            "blood is needed for surgery",
+        ],
+        "share_blood": [
+            "I want to donate blood",
+            "I'm willing to give blood",
+            "I can be a blood donor",
+            "where can I donate blood",
+        ],
+    },
+    "math": {
+        "compute_expression": [
+            "calculate 2 plus 2",
+            "what is 5 squared",
+            "solve this equation for me",
+            "evaluate this expression",
+            "what does x squared plus one equal",
+            "run this calculation",
+        ],
+    },
+    "shopping_assistant": {
+        "add_item": [
+            "put milk on my grocery list",
+            "I need to buy eggs",
+            "add bread to my list",
+            "throw some coffee on there too",
+        ],
+        "remove_item": [
+            "take eggs off my list",
+            "I already have butter, remove it",
+            "cross that off",
+            "delete that item from my shopping list",
+        ],
+        "view_list": [
+            "read my list to me",
+            "what am I supposed to be buying",
+            "show my grocery list",
+            "what's on the list",
+        ],
+        "edit_list": [
+            "update what's on my shopping list",
+            "I want to modify my grocery list",
+            "make changes to my list",
+        ],
+        "mark_purchased": [
+            "I got the milk",
+            "bought those already",
+            "check off the eggs",
+            "I picked up most of the items",
+        ],
+    },
+    "bot_store": {
+        "add_package": [
+            "I want to subscribe to a new feature",
+            "activate a module for me",
+            "get me access to that add-on",
+            "I'd like to try a new package",
+        ],
+        "remove_package": [
+            "cancel my subscription to that package",
+            "I don't need that feature anymore",
+            "unsubscribe me from this",
+            "turn off that module",
+        ],
+    },
+    "taskmaster_ai": {
+        "add_task": [
+            "put this on my to-do list",
+            "new task: call the dentist",
+            "remind me to do laundry",
+            "add a reminder to my task list",
+        ],
+        "view_tasks": [
+            "what do I have to do today",
+            "list all my tasks",
+            "show me what's on my agenda",
+            "read out my to-dos",
+        ],
+        "edit_tasks": [
+            "update that task",
+            "change the details on my to-do item",
+            "modify a task in my list",
+        ],
+        "remove_task": [
+            "delete that task",
+            "I finished it, take it off the list",
+            "clear completed tasks",
+            "remove that item from my to-dos",
+        ],
+    },
+    "flow_planner": {
+        "create_flow_plan": [
+            "plan my day for me",
+            "schedule tomorrow",
+            "build me a daily plan",
+            "organize my week",
+            "create a schedule starting tomorrow morning",
+        ],
+    },
+}
+
+
+def _load_intent_rows() -> list[dict]:
+    """Return flat list of {domain, intent, utterance} from YAML + extras."""
+    with open(INTENTS_PATH) as f:
+        taxonomy = yaml.safe_load(f)["intents"]
+
+    rows = []
+    for domain, intents in taxonomy.items():
+        for intent, data in intents.items():
+            for utt in data.get("utterances", []) + data.get("aliases", []):
+                rows.append({"domain": domain, "intent": intent, "utterance": utt, "source": "yaml"})
+            for utt in _EXTRA.get(domain, {}).get(intent, []):
+                rows.append({"domain": domain, "intent": intent, "utterance": utt, "source": "scenario"})
+    return rows
+
+
+def _embed_batch(utterances: list[str]) -> list[list[float]]:
+    vectors = []
+    for utt in utterances:
+        resp = httpx.post(f"{API_BASE}/embed", json={"query": utt}, timeout=15)
+        resp.raise_for_status()
+        vectors.append(resp.json()["vector"])
+    return vectors
+
+
+with tab_intents:
+    st.subheader("Intent Space")
+    st.caption("All intents and scenario utterances projected into 2D embedding space. Colored by domain, shaped by source (● YAML · ✦ scenario).")
+
+    i_col1, i_col2 = st.columns([6, 1])
+    with i_col1:
+        intent_query = st.text_input(
+            "Type a message to see where it lands",
+            placeholder="e.g. I need some cash…",
+            key="intent_query",
+            label_visibility="collapsed",
+        )
+    with i_col2:
+        rebuild_btn = st.button("↺ Rebuild", help="Re-embed all utterances", use_container_width=True)
+
+    if rebuild_btn:
+        for k in ("intent_rows", "intent_coords", "intent_pca", "intent_query_history"):
+            st.session_state.pop(k, None)
+
+    # --- Embed intent corpus once ---
+    if "intent_coords" not in st.session_state:
+        rows = _load_intent_rows()
+        utterances = [r["utterance"] for r in rows]
+        with st.spinner(f"Embedding {len(utterances)} utterances…"):
+            try:
+                vecs = _embed_batch(utterances)
+                pca_i = PCA(n_components=2, random_state=42)
+                coords_i = pca_i.fit_transform(np.array(vecs, dtype=np.float32))
+                st.session_state.intent_rows = rows
+                st.session_state.intent_coords = coords_i
+                st.session_state.intent_pca = pca_i
+            except Exception as exc:
+                st.error(f"Failed to embed intents: {exc}")
+                st.stop()
+
+    rows_i = st.session_state.intent_rows
+    coords_i = st.session_state.intent_coords
+    pca_i = st.session_state.intent_pca
+
+    domains = [r["domain"] for r in rows_i]
+    intents_col = [r["intent"] for r in rows_i]
+    utterances_col = [r["utterance"] for r in rows_i]
+    sources = [r["source"] for r in rows_i]
+
+    unique_domains = list(dict.fromkeys(domains))
+    palette = [
+        "#60a5fa", "#34d399", "#f59e0b", "#f87171", "#a78bfa",
+        "#38bdf8", "#fb923c", "#4ade80", "#e879f9", "#22d3ee",
+        "#fb7185", "#86efac",
+    ]
+    domain_color = {d: palette[i % len(palette)] for i, d in enumerate(unique_domains)}
+
+    fig_i = go.Figure()
+
+    # Domain clusters
+    for dom in unique_domains:
+        idx = [i for i, d in enumerate(domains) if d == dom]
+        yaml_idx = [i for i in idx if sources[i] == "yaml"]
+        scen_idx = [i for i in idx if sources[i] == "scenario"]
+        hex_c = domain_color[dom]
+        r, g, b = int(hex_c[1:3], 16), int(hex_c[3:5], 16), int(hex_c[5:7], 16)
+
+        if yaml_idx:
+            fig_i.add_trace(go.Scatter(
+                x=coords_i[yaml_idx, 0], y=coords_i[yaml_idx, 1],
+                mode="markers",
+                name=dom,
+                legendgroup=dom,
+                marker=dict(symbol="circle", size=10,
+                            color=f"rgba({r},{g},{b},0.85)",
+                            line=dict(width=1, color="white")),
+                text=[utterances_col[i] for i in yaml_idx],
+                customdata=[[intents_col[i]] for i in yaml_idx],
+                hovertemplate="<b>%{customdata[0]}</b><br>%{text}<extra>" + dom + "</extra>",
+            ))
+
+        if scen_idx:
+            fig_i.add_trace(go.Scatter(
+                x=coords_i[scen_idx, 0], y=coords_i[scen_idx, 1],
+                mode="markers",
+                name=dom + " (scenario)",
+                legendgroup=dom,
+                showlegend=False,
+                marker=dict(symbol="diamond", size=8,
+                            color=f"rgba({r},{g},{b},0.45)",
+                            line=dict(width=1, color="white")),
+                text=[utterances_col[i] for i in scen_idx],
+                customdata=[[intents_col[i]] for i in scen_idx],
+                hovertemplate="<b>%{customdata[0]}</b><br>%{text}<extra>" + dom + " · scenario</extra>",
+            ))
+
+    # Centroid labels per intent
+    seen_intents = set()
+    for dom in unique_domains:
+        intent_set = dict.fromkeys(intents_col[i] for i, d in enumerate(domains) if d == dom)
+        for intent in intent_set:
+            idx = [i for i, (d, it) in enumerate(zip(domains, intents_col)) if d == dom and it == intent]
+            cx = float(np.mean(coords_i[idx, 0]))
+            cy = float(np.mean(coords_i[idx, 1]))
+            if intent not in seen_intents:
+                fig_i.add_annotation(
+                    x=cx, y=cy,
+                    text=f"<b>{intent}</b>",
+                    showarrow=False,
+                    font=dict(size=9, color="rgba(255,255,255,0.65)"),
+                    bgcolor="rgba(0,0,0,0.35)",
+                    borderpad=2,
+                )
+                seen_intents.add(intent)
+
+    # Live query overlay
+    q_coord_i = None
+    classified = None
+    prev_iq = st.session_state.get("intent_last_query", "")
+
+    if intent_query.strip() and intent_query != prev_iq:
+        try:
+            embed_resp = httpx.post(f"{API_BASE}/embed", json={"query": intent_query}, timeout=15)
+            embed_resp.raise_for_status()
+            qvec_i = np.array(embed_resp.json()["vector"], dtype=np.float32)
+            q_coord_i = pca_i.transform(qvec_i.reshape(1, -1))[0]
+
+            cls_resp = httpx.post(f"{API_BASE}/classify", json={"utterance": intent_query}, timeout=15)
+            cls_resp.raise_for_status()
+            classified = cls_resp.json()
+
+            hist = st.session_state.get("intent_query_history", [])
+            hist.append({"text": intent_query, "x": float(q_coord_i[0]), "y": float(q_coord_i[1]),
+                         "domain": classified.get("domain", "?"), "intent": classified.get("intent", "?"),
+                         "confidence": classified.get("confidence", "?")})
+            st.session_state.intent_query_history = hist[-10:]
+            st.session_state.intent_last_query = intent_query
+            st.session_state.intent_last_classified = classified
+            st.session_state.intent_last_coord = q_coord_i.tolist()
+        except Exception as exc:
+            st.error(f"Query failed: {exc}")
+
+    elif intent_query.strip() and intent_query == prev_iq:
+        classified = st.session_state.get("intent_last_classified")
+        saved_coord = st.session_state.get("intent_last_coord")
+        if saved_coord:
+            q_coord_i = np.array(saved_coord)
+
+    # Past query trail
+    hist = st.session_state.get("intent_query_history", [])
+    for j, h in enumerate(hist[:-1]):
+        alpha = 0.15 + 0.55 * (j / max(len(hist) - 2, 1))
+        fig_i.add_trace(go.Scatter(
+            x=[h["x"]], y=[h["y"]],
+            mode="markers",
+            marker=dict(symbol="star", size=11,
+                        color=f"rgba(255,140,90,{alpha:.2f})"),
+            text=[f'"{h["text"]}" → {h["domain"]}.{h["intent"]}'],
+            hovertemplate="%{text}<extra>past query</extra>",
+            showlegend=False,
+        ))
+
+    if q_coord_i is not None:
+        fig_i.add_trace(go.Scatter(
+            x=[q_coord_i[0]], y=[q_coord_i[1]],
+            mode="markers+text",
+            name="Your query",
+            text=[f'"{intent_query}"'],
+            textposition="bottom right",
+            textfont=dict(size=11, color="#ff6b6b"),
+            marker=dict(symbol="star", size=22, color="#ff3333",
+                        line=dict(width=2, color="white")),
+            hovertemplate=f'<b>Query:</b> "{intent_query}"<extra></extra>',
+        ))
+
+    var_i = pca_i.explained_variance_ratio_
+    fig_i.update_layout(
+        height=640,
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(12,14,21,1)",
+        title=dict(
+            text=(
+                f"Intent Embedding Space — PCA 2D  "
+                f"<span style='font-size:11px;color:#888'>"
+                f"(PC1 {var_i[0]:.1%} + PC2 {var_i[1]:.1%} variance explained)</span>"
+            ),
+            font=dict(size=14), x=0.01,
+        ),
+        xaxis=dict(title="PC 1", showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                   zeroline=False, showticklabels=False),
+        yaxis=dict(title="PC 2", showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                   zeroline=False, showticklabels=False),
+        legend=dict(font=dict(size=10), bgcolor="rgba(0,0,0,0.45)",
+                    bordercolor="rgba(255,255,255,0.1)", borderwidth=1, tracegroupgap=4),
+        margin=dict(l=40, r=40, t=60, b=40),
+        hovermode="closest",
+    )
+
+    chart_col_i, info_col_i = st.columns([5, 2])
+
+    with chart_col_i:
+        st.plotly_chart(fig_i, use_container_width=True)
+        st.caption("● YAML utterances · ◆ scenario utterances · ★ your query")
+
+    with info_col_i:
+        if classified:
+            conf = classified.get("confidence", "?")
+            conf_color = {"high": "#34d399", "medium": "#f59e0b", "low": "#f87171"}.get(conf, "#aaa")
+            st.markdown(f"### Classification")
+            st.markdown(
+                f"**Domain:** `{classified.get('domain', '?')}`  \n"
+                f"**Intent:** `{classified.get('intent', '?')}`  \n"
+                f"**Confidence:** <span style='color:{conf_color}'>{conf}</span>",
+                unsafe_allow_html=True,
+            )
+            st.divider()
+
+        st.markdown("### Intent breakdown")
+        domain_counts: dict[str, int] = {}
+        for r in rows_i:
+            domain_counts[r["domain"]] = domain_counts.get(r["domain"], 0) + 1
+
+        for dom in unique_domains:
+            hex_c = domain_color[dom]
+            intent_labels = list(dict.fromkeys(
+                r["intent"] for r in rows_i if r["domain"] == dom
+            ))
+            with st.expander(
+                f"**{dom}** — {domain_counts[dom]} utterances",
+                expanded=classified is not None and classified.get("domain") == dom,
+            ):
+                for il in intent_labels:
+                    count = sum(1 for r in rows_i if r["domain"] == dom and r["intent"] == il)
+                    is_match = classified and classified.get("intent") == il and classified.get("domain") == dom
+                    prefix = "→ " if is_match else ""
+                    weight = "**" if is_match else ""
+                    st.markdown(
+                        f"{prefix}{weight}`{il}`{weight} <small style='color:#888'>({count})</small>",
+                        unsafe_allow_html=True,
+                    )
 
 
 # ---------------------------------------------------------------------------
