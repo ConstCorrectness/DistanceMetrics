@@ -1,0 +1,115 @@
+intents:
+  benevolence:
+    view_events:
+      utterances:
+        - "I want to see events coming up"
+    view_wishlists:
+      utterances:
+        - "I want to see wishlists"
+    buy_gifts:
+      utterances:
+        - "I want to buy gifts for my loved ones"
+
+  remembot:
+    remember:
+      utterances:
+        - "I want to remember something"
+    recall:
+      utterances:
+        - "I want to recall something"
+
+  moneyshare:
+    avoid_fee:
+      utterances:
+        - "I want to avoid a bank fee"
+    request_loan:
+      utterances:
+        - "I need a small loan"
+
+  foodshare:
+    request_food:
+      utterances:
+        - "I'm hungry"
+        - "I am hungry"
+    share_food:
+      utterances:
+        - "I have food to share"
+        - "I want to share some food"
+
+  billpayshare:
+    request_bill_help:
+      utterances:
+        - "I need help with a bill"
+
+  bloodshare:
+    request_blood:
+      utterances:
+        - "I need blood"
+    share_blood:
+      utterances:
+        - "I have blood to share"
+
+  math:
+    compute_expression:
+      utterances:
+        - "compute xplusonesquared"
+        - "compute xsquaredplusone"
+      aliases:
+        - "Compute x squared plus one"
+        - "Compute x plus one squared"
+
+  shopping_assistant:
+    add_item:
+      utterances:
+        - "Add an item to my shopping list"
+        - "I want to add items to my shopping list"
+    remove_item:
+      utterances:
+        - "Remove an item from my shopping list"
+    view_list:
+      utterances:
+        - "What's on my shopping list"
+        - "I want to see my shopping list"
+    edit_list:
+      utterances:
+        - "I want to change my shopping list"
+    mark_purchased:
+      utterances:
+        - "I've purchased some items on my shopping list"
+        - "I have purchased some items on my shopping list"
+
+  bot_store:
+    add_package:
+      utterances:
+        - "I want to buy a package"
+      aliases:
+        - "I want to add a package"
+    remove_package:
+      utterances:
+        - "I want to stop using a package"
+      aliases:
+        - "I want to remove a package"
+
+  taskmaster_ai:
+    add_task:
+      utterances:
+        - "I want to add a to do list item to my list"
+        - "Add a to do list item"
+        - "I want to add a to do list item"
+    view_tasks:
+      utterances:
+        - "I want to see my to do list"
+        - "Show to do list"
+        - "Show my to do list"
+    edit_tasks:
+      utterances:
+        - "I want to change my to do list"
+        - "I want to edit my to do list"
+    remove_task:
+      utterances:
+        - "I want to remove items from my to do list"
+
+  flow_planner:
+    create_flow_plan:
+      utterances:
+        - "Create a flow plan for tomorrow"

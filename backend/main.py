@@ -9,6 +9,7 @@ from backend.jobs import create_job, get_job, update_job
 from backend.parser import parse_file, row_to_text, SUPPORTED_EXTENSIONS
 from backend.embedder import embed_texts, BATCH_SIZE
 from backend.vectordb import ensure_collection, upsert_points, search, list_source_files, get_all_vectors
+from backend.intent_classifier import classify
 
 load_dotenv()
 
@@ -130,6 +131,17 @@ def embed_query(req: EmbedRequest):
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     vectors = embed_texts([req.query])
     return {"vector": vectors[0]}
+
+
+class ClassifyRequest(BaseModel):
+    utterance: str
+
+
+@app.post("/classify")
+def classify_intent(req: ClassifyRequest):
+    if not req.utterance.strip():
+        raise HTTPException(status_code=400, detail="Utterance cannot be empty")
+    return classify(req.utterance)
 
 
 @app.get("/health")
