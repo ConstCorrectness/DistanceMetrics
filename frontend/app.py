@@ -14,8 +14,8 @@ INTENTS_PATH = Path(__file__).parent.parent / "intents.yaml"
 st.set_page_config(page_title="Semantic Search", page_icon="🔍", layout="wide")
 st.title("🔍 Semantic Search")
 
-tab_upload, tab_search, tab_viz, tab_intents, tab_files = st.tabs(
-    ["Upload", "Search", "Visualize", "Intents", "Indexed Files"]
+tab_upload, tab_search, tab_viz, tab_intents, tab_directory, tab_files = st.tabs(
+    ["Upload", "Search", "Visualize", "Intents", "Directory", "Indexed Files"]
 )
 
 
@@ -942,6 +942,56 @@ with tab_intents:
                         """,
                         unsafe_allow_html=True
                     )
+
+
+# ---------------------------------------------------------------------------
+# Directory tab
+# ---------------------------------------------------------------------------
+with tab_directory:
+    st.subheader("Company Directory")
+    st.caption("Full list of indexed companies with metadata.")
+
+    # We use the existing payloads from st.session_state if available, 
+    # otherwise fetch them.
+    all_data = st.session_state.get("pca_payloads")
+    
+    if not all_data:
+        if st.button("Load Directory"):
+            try:
+                resp = httpx.get(f"{API_BASE}/vectors", timeout=30)
+                resp.raise_for_status()
+                raw_points = resp.json()["points"]
+                all_data = [p["payload"] for p in raw_points]
+                st.session_state.pca_payloads = all_data
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to load data: {e}")
+    
+    if all_data:
+        import pandas as pd
+        df = pd.DataFrame(all_data)
+        
+        # Reorder columns for better viewing
+        cols = ["company_name", "mapped_industry", "mapped_function", "short_description", "website", "zone", "priority"]
+        existing_cols = [c for d in [df.columns] for c in cols if c in d]
+        df = df[existing_cols + [c for c in df.columns if c not in existing_cols]]
+        
+        # Search box
+        search_term = st.text_input("Filter directory by name or description", "").lower()
+        if search_term:
+            mask = df.apply(lambda x: x.astype(str).str.lower().str.contains(search_term)).any(axis=1)
+            df = df[mask]
+            
+        st.dataframe(
+            df,
+            use_container_width=True,
+            column_config={
+                "website": st.column_config.LinkColumn("Website"),
+                "active": st.column_config.CheckboxColumn("Active"),
+            },
+            hide_index=True,
+        )
+        st.caption(f"Showing {len(df)} companies")
 
 
 # ---------------------------------------------------------------------------
