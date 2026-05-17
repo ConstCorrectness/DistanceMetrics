@@ -833,6 +833,24 @@ with tab_intents:
         st.caption("● YAML utterances · ◆ scenario utterances · ★ your query")
 
     with info_col_i:
+        # Stabilize layout to prevent scrollbar flicker
+        st.markdown(
+            """
+            <style>
+            /* Ensure the side column doesn't jump when content expands */
+            div[data-testid="column"]:nth-of-type(2) {
+                overflow-x: hidden;
+            }
+            .stExpander {
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                margin-bottom: 0.5rem;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
         if classified:
             conf = classified.get("confidence", "?")
             conf_color = {"high": "#34d399", "medium": "#f59e0b", "low": "#f87171"}.get(conf, "#aaa")
@@ -851,23 +869,23 @@ with tab_intents:
             domain_counts[r["domain"]] = domain_counts.get(r["domain"], 0) + 1
 
         for dom in unique_domains:
-            hex_c = domain_color[dom]
             intent_labels = list(dict.fromkeys(
                 r["intent"] for r in rows_i if r["domain"] == dom
             ))
             with st.expander(
-                f"**{dom}** — {domain_counts[dom]} utterances",
+                f"**{dom}** ({domain_counts[dom]})",
                 expanded=classified is not None and classified.get("domain") == dom,
             ):
                 for il in intent_labels:
                     count = sum(1 for r in rows_i if r["domain"] == dom and r["intent"] == il)
                     is_match = classified and classified.get("intent") == il and classified.get("domain") == dom
-                    prefix = "→ " if is_match else ""
-                    weight = "**" if is_match else ""
-                    st.markdown(
-                        f"{prefix}{weight}`{il}`{weight} <small style='color:#888'>({count})</small>",
-                        unsafe_allow_html=True,
-                    )
+                    prefix = "🎯 " if is_match else ""
+                    
+                    # Show utterances in a nested expander
+                    with st.expander(f"{prefix}`{il}` ({count})", expanded=is_match):
+                        utts = [r["utterance"] for r in rows_i if r["domain"] == dom and r["intent"] == il]
+                        for u in utts:
+                            st.markdown(f"<small>• {u}</small>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
