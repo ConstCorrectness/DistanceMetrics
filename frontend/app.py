@@ -881,11 +881,21 @@ with tab_intents:
                     is_match = bool(classified and classified.get("intent") == il and classified.get("domain") == dom)
                     prefix = "🎯 " if is_match else ""
                     
-                    # Show utterances in a nested expander
-                    with st.expander(f"{prefix}`{il}` ({count})", expanded=is_match):
-                        utts = [r["utterance"] for r in rows_i if r["domain"] == dom and r["intent"] == il]
-                        for u in utts:
-                            st.markdown(f"<small>• {u}</small>", unsafe_allow_html=True)
+                    # Use HTML details tag to avoid nested expander exception
+                    utts_html = "".join([f"<li><small>{u}</small></li>" for u in utts])
+                    st.markdown(
+                        f"""
+                        <details {"open" if is_match else ""}>
+                            <summary style="cursor: pointer; padding: 2px 0;">
+                                {prefix}<code>{il}</code> ({count})
+                            </summary>
+                            <ul style="list-style-type: none; margin-top: 5px; padding-left: 15px;">
+                                {utts_html}
+                            </ul>
+                        </details>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
 
 # ---------------------------------------------------------------------------
