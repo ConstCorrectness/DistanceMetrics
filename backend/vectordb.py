@@ -25,13 +25,15 @@ def _get_client() -> QdrantClient:
     return _client
 
 
-def _collection() -> str:
+def _collection(name: str | None = None) -> str:
+    if name:
+        return name
     return os.environ.get("QDRANT_COLLECTION", "documents")
 
 
-def ensure_collection() -> None:
+def ensure_collection(name: str | None = None) -> None:
     client = _get_client()
-    col = _collection()
+    col = _collection(name)
     try:
         existing = [c.name for c in client.get_collections().collections]
     except Exception as e:
@@ -52,6 +54,7 @@ def upsert_points(
     vectors: list[list[float]],
     payloads: list[dict],
     source_file: str,
+    collection: str | None = None,
 ) -> None:
     client = _get_client()
     points = [
@@ -62,13 +65,13 @@ def upsert_points(
         )
         for vec, payload in zip(vectors, payloads)
     ]
-    client.upsert(collection_name=_collection(), points=points)
+    client.upsert(collection_name=_collection(collection), points=points)
 
 
-def search(query_vector: list[float], top_k: int = 10) -> list[dict]:
+def search(query_vector: list[float], top_k: int = 10, collection: str | None = None) -> list[dict]:
     client = _get_client()
     results = client.search(
-        collection_name=_collection(),
+        collection_name=_collection(collection),
         query_vector=query_vector,
         limit=top_k,
         with_payload=True,
@@ -79,13 +82,13 @@ def search(query_vector: list[float], top_k: int = 10) -> list[dict]:
     ]
 
 
-def get_all_vectors() -> list[dict]:
+def get_all_vectors(collection: str | None = None) -> list[dict]:
     client = _get_client()
     results = []
     offset = None
     while True:
         records, offset = client.scroll(
-            collection_name=_collection(),
+            collection_name=_collection(collection),
             with_vectors=True,
             with_payload=True,
             limit=256,
@@ -99,13 +102,13 @@ def get_all_vectors() -> list[dict]:
     return results
 
 
-def list_source_files() -> list[str]:
+def list_source_files(collection: str | None = None) -> list[str]:
     client = _get_client()
     seen: set[str] = set()
     offset = None
     while True:
         records, offset = client.scroll(
-            collection_name=_collection(),
+            collection_name=_collection(collection),
             with_payload=["source_file"],
             limit=256,
             offset=offset,

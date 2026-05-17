@@ -16,7 +16,8 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ensure_collection()
+    ensure_collection()  # Default collection
+    ensure_collection("intents")
     yield
 
 
@@ -111,13 +112,13 @@ def semantic_search(req: SearchRequest):
 
 
 @app.get("/collections")
-def get_collections():
-    return {"files": list_source_files()}
+def get_collections(collection: str | None = None):
+    return {"files": list_source_files(collection=collection)}
 
 
 @app.get("/vectors")
-def all_vectors():
-    points = get_all_vectors()
+def all_vectors(collection: str | None = None):
+    points = get_all_vectors(collection=collection)
     return {"points": points, "count": len(points)}
 
 
