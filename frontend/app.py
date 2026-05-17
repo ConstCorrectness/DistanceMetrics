@@ -881,6 +881,9 @@ with tab_intents:
                     is_match = bool(classified and classified.get("intent") == il and classified.get("domain") == dom)
                     prefix = "🎯 " if is_match else ""
                     
+                    # Extract utterances for this specific intent
+                    utts = [r["utterance"] for r in rows_i if r["domain"] == dom and r["intent"] == il]
+                    
                     # Use HTML details tag to avoid nested expander exception
                     utts_html = "".join([f"<li><small>{u}</small></li>" for u in utts])
                     st.markdown(
