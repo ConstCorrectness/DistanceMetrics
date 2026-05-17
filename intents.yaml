@@ -16,8 +16,7 @@ intents:
         - "I want to remember something"
     recall:
       utterances:
-        - "I want to recall something"
-
+        - "I want to recall something"  
   moneyshare:
     avoid_fee:
       utterances:
@@ -35,12 +34,10 @@ intents:
       utterances:
         - "I have food to share"
         - "I want to share some food"
-
   billpayshare:
     request_bill_help:
       utterances:
         - "I need help with a bill"
-
   bloodshare:
     request_blood:
       utterances:
@@ -77,6 +74,8 @@ intents:
       utterances:
         - "I've purchased some items on my shopping list"
         - "I have purchased some items on my shopping list"
+
+
 
   bot_store:
     add_package:

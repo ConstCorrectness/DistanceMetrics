@@ -32,7 +32,15 @@ def _collection() -> str:
 def ensure_collection() -> None:
     client = _get_client()
     col = _collection()
-    existing = [c.name for c in client.get_collections().collections]
+    try:
+        existing = [c.name for c in client.get_collections().collections]
+    except Exception as e:
+        url = os.environ.get("QDRANT_URL", "unknown")
+        print(f"Error connecting to Qdrant at {url}: {e}")
+        if "404" in str(e):
+            print("Hint: A 404 error often means the QDRANT_URL is pointing to a path that doesn't exist or a proxy that doesn't recognize the request. If you are using Hugging Face Spaces, ensure the URL is the direct space URL (e.g., https://user-name.hf.space) and that the Qdrant service is running and reachable.")
+        raise e
+
     if col not in existing:
         client.create_collection(
             collection_name=col,

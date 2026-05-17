@@ -1,8 +1,12 @@
 import json
 import os
 from pathlib import Path
-
+from pydantic import BaseModel
 import yaml
+
+from typing import cast
+
+
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -10,9 +14,28 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 _INTENTS_PATH = Path(__file__).parent.parent / "intents.yaml"
 
 
+structured_output = {
+    "type": "object",
+    "properties": {
+        "domain": {"type": "string"},
+        "intent": {"type": "string"},
+        "confidence": {"type": "string", 'enum': ['low', 'medium', 'high']}
+    },
+    "required": ['domain', 'intent', 'confidence']
+}
+
 def _load_taxonomy() -> dict:
     with open(_INTENTS_PATH) as f:
         return yaml.safe_load(f)["intents"]
+
+
+# TODO: specialize to particular bot package/service specialized handler:
+def _build_specialized_handler(taxonomy: dict, handler_name: str) -> str:
+    """
+    
+    """
+
+    return ''
 
 
 def _build_system_prompt(taxonomy: dict) -> str:
@@ -42,4 +65,4 @@ def classify(utterance: str) -> dict:
         temperature=0,
     )
 
-    return json.loads(response.choices[0].message.content)
+    return json.loads(cast(str, response.choices[0].message.content))
