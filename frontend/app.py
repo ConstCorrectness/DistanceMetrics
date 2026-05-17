@@ -878,7 +878,7 @@ with tab_intents:
             ):
                 for il in intent_labels:
                     count = sum(1 for r in rows_i if r["domain"] == dom and r["intent"] == il)
-                    is_match = classified and classified.get("intent") == il and classified.get("domain") == dom
+                    is_match = bool(classified and classified.get("intent") == il and classified.get("domain") == dom)
                     prefix = "🎯 " if is_match else ""
                     
                     # Show utterances in a nested expander
