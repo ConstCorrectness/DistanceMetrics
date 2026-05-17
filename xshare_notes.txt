@@ -1,0 +1,13 @@
+xShare
+
+xshare already maps to a context:
+    - bot packages allow/disallow
+
+
+    x Share (dispatch)
+    x = Ride/.../food/clothing/etc.
+    x = 
+
+
+    - verification of both parties
+    - 

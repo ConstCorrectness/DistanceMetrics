@@ -102,6 +102,16 @@ def get_all_vectors(collection: str | None = None) -> list[dict]:
     return results
 
 
+def clear_collection(name: str | None = None) -> None:
+    client = _get_client()
+    col = _collection(name)
+    try:
+        client.delete_collection(col)
+    except:
+        pass
+    ensure_collection(col)
+
+
 def list_source_files(collection: str | None = None) -> list[str]:
     client = _get_client()
     seen: set[str] = set()

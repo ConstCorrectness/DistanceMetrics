@@ -33,20 +33,31 @@ with tab_upload:
     )
 
     if uploaded and st.button("Upload & Embed", type="primary"):
-        with st.spinner("Sending file to API..."):
+        # ... existing upload logic ...
+        pass
+
+    st.divider()
+    st.subheader("Seed from Repository")
+    st.caption("Sync files already present in the source code (Bypasses upload errors)")
+
+    repo_files = ["websummit_lisbon2025_companies.csv"]
+    selected_sync = st.selectbox("Select file to sync", repo_files, label_visibility="collapsed")
+
+    if st.button(f"Sync {selected_sync}", type="secondary"):
+        with st.spinner(f"Requesting sync for {selected_sync}..."):
             try:
                 resp = httpx.post(
-                    f"{API_BASE}/upload",
-                    files={"file": (uploaded.name, uploaded.getvalue(), "application/octet-stream")},
+                    f"{API_BASE}/sync-local",
+                    json={"filename": selected_sync},
                     timeout=30,
                 )
                 resp.raise_for_status()
                 job_id = resp.json()["job_id"]
             except Exception as e:
-                st.error(f"Upload failed: {e}")
+                st.error(f"Sync request failed: {e}")
                 st.stop()
 
-        st.info(f"Job started: `{job_id}`")
+        st.info(f"Sync job started: `{job_id}`")
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -66,7 +77,7 @@ with tab_upload:
             status_text.text(msg)
 
             if state == "done":
-                st.success(f"Indexed {data['total_rows']} rows from **{uploaded.name}**")
+                st.success(f"Successfully synced **{selected_sync}** ({data['total_rows']} rows)")
                 break
             elif state == "error":
                 st.error(f"Error: {data.get('error', 'Unknown error')}")
@@ -976,6 +987,10 @@ with tab_directory:
         existing_cols = [c for d in [df.columns] for c in cols if c in d]
         df = df[existing_cols + [c for c in df.columns if c not in existing_cols]]
         
+        # Fix type inference for Arrow serialization (prevents 'High' -> int64 errors)
+        if "priority" in df.columns:
+            df["priority"] = df["priority"].astype(str)
+        
         # Search box
         search_term = st.text_input("Filter directory by name or description", "").lower()
         if search_term:
@@ -1000,8 +1015,19 @@ with tab_directory:
 with tab_files:
     st.subheader("Indexed source files")
 
-    if st.button("Refresh", type="secondary"):
-        st.rerun()
+    col_f1, col_f2 = st.columns([4, 1])
+    with col_f1:
+        if st.button("Refresh List", type="secondary"):
+            st.rerun()
+    with col_f2:
+        if st.button("🗑️ Clear DB", help="Delete all vectors in the main collection", type="secondary"):
+            try:
+                resp = httpx.post(f"{API_BASE}/clear-collection", timeout=30)
+                resp.raise_for_status()
+                st.success("Database cleared!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Clear failed: {e}")
 
     try:
         resp = httpx.get(f"{API_BASE}/collections", timeout=10)

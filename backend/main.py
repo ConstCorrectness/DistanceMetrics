@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from backend.jobs import create_job, get_job, update_job
 from backend.parser import parse_file, row_to_text, SUPPORTED_EXTENSIONS
 from backend.embedder import embed_texts, BATCH_SIZE
-from backend.vectordb import ensure_collection, upsert_points, search, list_source_files, get_all_vectors
+from backend.vectordb import ensure_collection, upsert_points, search, list_source_files, get_all_vectors, clear_collection
 from backend.intent_classifier import classify
 
 load_dotenv()
@@ -122,6 +122,12 @@ def all_vectors(collection: str | None = None):
     return {"points": points, "count": len(points)}
 
 
+@app.post("/clear-collection")
+def clear_vector_collection(collection: str | None = None):
+    clear_collection(collection)
+    return {"status": "ok", "message": f"Collection {collection or 'documents'} cleared"}
+
+
 class EmbedRequest(BaseModel):
     query: str
 
@@ -136,6 +142,24 @@ def embed_query(req: EmbedRequest):
 
 class ClassifyRequest(BaseModel):
     utterance: str
+
+
+class SyncLocalRequest(BaseModel):
+    filename: str
+
+
+@app.post("/sync-local")
+def sync_local(req: SyncLocalRequest, background_tasks: BackgroundTasks):
+    file_path = os.path.join(os.getcwd(), req.filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"File {req.filename} not found on server")
+    
+    with open(file_path, "rb") as f:
+        content = f.read()
+    
+    job = create_job()
+    background_tasks.add_task(_ingest, job.id, req.filename, content)
+    return {"job_id": job.id, "message": f"Syncing {req.filename} in background"}
 
 
 @app.post("/classify")
