@@ -1,4 +1,4 @@
-import { Botcierge } from "@botcierge/sdk";
+import { Botcierge } from "../src/index.ts";
 
 const client = new Botcierge();
 
