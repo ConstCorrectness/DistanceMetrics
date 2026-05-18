@@ -2,7 +2,7 @@ export interface IntentResult {
   domain: string;
   intent: string;
   confidence: "high" | "medium" | "low";
-  scores: Record<string, number>;
+  scores?: Record<string, number>;
 }
 
 export interface BotciergeConfig {

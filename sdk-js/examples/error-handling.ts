@@ -1,4 +1,4 @@
-import { query_intent } from "@botcierge/sdk";
+import { query_intent } from "../src/index.ts";
 
 try {
   const result = await query_intent("I want to add an item to my shopping list");
