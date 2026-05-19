@@ -1,5 +1,5 @@
 intents:
-  benevolence:
+  GIFTMINDER:
     view_events:
       utterances:
         - "I want to see events coming up"
@@ -10,14 +10,15 @@ intents:
       utterances:
         - "I want to buy gifts for my loved ones"
 
-  remembot:
+  REMEMBOT:
     remember:
       utterances:
         - "I want to remember something"
     recall:
       utterances:
         - "I want to recall something"  
-  moneyshare:
+    
+  RESCUEBIDS:
     avoid_fee:
       utterances:
         - "I want to avoid a bank fee"
@@ -25,7 +26,7 @@ intents:
       utterances:
         - "I need a small loan"
 
-  foodshare:
+  FOODLINK:
     request_food:
       utterances:
         - "I'm hungry"
@@ -34,11 +35,13 @@ intents:
       utterances:
         - "I have food to share"
         - "I want to share some food"
-  billpayshare:
+
+  BILLBRIDGE:
     request_bill_help:
       utterances:
         - "I need help with a bill"
-  bloodshare:
+
+  BLOODSHARE:
     request_blood:
       utterances:
         - "I need blood"
@@ -46,7 +49,7 @@ intents:
       utterances:
         - "I have blood to share"
 
-  math:
+  MATH:
     compute_expression:
       utterances:
         - "compute xplusonesquared"
@@ -55,7 +58,7 @@ intents:
         - "Compute x squared plus one"
         - "Compute x plus one squared"
 
-  shopping_assistant:
+  SHOP_SAVVY:
     add_item:
       utterances:
         - "Add an item to my shopping list"
@@ -75,9 +78,7 @@ intents:
         - "I've purchased some items on my shopping list"
         - "I have purchased some items on my shopping list"
 
-
-
-  bot_store:
+  BOT_STORE:
     add_package:
       utterances:
         - "I want to buy a package"
@@ -89,7 +90,7 @@ intents:
       aliases:
         - "I want to remove a package"
 
-  taskmaster_ai:
+  TASKMASTERAI:
     add_task:
       utterances:
         - "I want to add a to do list item to my list"
@@ -108,7 +109,31 @@ intents:
       utterances:
         - "I want to remove items from my to do list"
 
-  flow_planner:
+  FLOWPLANNER:
     create_flow_plan:
       utterances:
         - "Create a flow plan for tomorrow"
+
+
+  CGM:
+    find_company:
+      utterances:
+        - I need a company that...
+        - I want a company that...
+    
+
+
+  TIFFANY:
+    process_dental_patient:
+      utterances:
+        - I want to process the patient visit for <patient-name>
+    
+  CAREMEDIC:
+    process_medical_patient:
+      utterances:
+        - I want to process the patient visit for <patient-name>
+
+  DISCRETION:
+    retrieval_augmented_generation:
+      utterances:
+        - 
