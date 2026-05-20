@@ -44,7 +44,7 @@ def _build_system_prompt(taxonomy: dict) -> str:
     for domain, intents in taxonomy.items():
         for intent, data in intents.items():
             utterances = data.get("utterances", [])
-            examples = "; ".join(utterances[:2])
+            examples = "; ".join(u for u in utterances[:2] if u)
             lines.append(f"  {domain}.{intent}: \"{examples}\"")
     lines.append('\nIf nothing matches, return {"domain": "unknown", "intent": "unknown", "confidence": "low"}.')
     lines.append("Respond with JSON only, no prose.")
