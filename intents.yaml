@@ -136,4 +136,4 @@ intents:
   DISCRETION:
     retrieval_augmented_generation:
       utterances:
-        - 
+        - "I need to retrieve information from my documents"
