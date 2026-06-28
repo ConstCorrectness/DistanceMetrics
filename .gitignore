@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+node_modules
+dist
+.env
+.npmrc
+*.log
+horribleprogram-sdk-*.tgz
+.claude

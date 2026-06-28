@@ -10,8 +10,6 @@ from qdrant_client.models import (
     MatchValue,
 )
 
-VECTOR_SIZE = 1536  # text-embedding-3-small dimension
-
 _client: QdrantClient | None = None
 
 
@@ -26,9 +24,12 @@ def _get_client() -> QdrantClient:
 
 
 def _collection(name: str | None = None) -> str:
-    if name:
-        return name
-    return os.environ.get("QDRANT_COLLECTION", "documents")
+    from backend.embedder import get_embedding_dimension
+    dim = get_embedding_dimension()
+    base = name if name else os.environ.get("QDRANT_COLLECTION", "documents")
+    if base.endswith(f"_{dim}"):
+        return base
+    return f"{base}_{dim}"
 
 
 def ensure_collection(name: str | None = None) -> None:
@@ -44,9 +45,11 @@ def ensure_collection(name: str | None = None) -> None:
         raise e
 
     if col not in existing:
+        from backend.embedder import get_embedding_dimension
+        vector_size = get_embedding_dimension()
         client.create_collection(
             collection_name=col,
-            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
         )
 
 

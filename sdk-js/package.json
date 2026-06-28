@@ -1,11 +1,22 @@
 {
   "name": "@horribleprogram/sdk",
-  "version": "0.1.1",
+  "version": "0.1.5",
   "description": "SDK for Botcierge Intent Classification",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./dist": {
+      "import": "./dist/index.js"
+    },
+    "./dist/*": "./dist/*"
+  },
   "files": [
     "dist"
   ],
@@ -32,5 +43,7 @@
     "typescript": "^5.0.0",
     "vitest": "^4.1.6"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2"
+  }
 }

@@ -12,12 +12,16 @@ pinned: false
 
 Semantic search over structured data with live vector-space visualization.
 
-Upload a CSV/XLSX/JSON file, embed it via OpenAI `text-embedding-3-small`, store in Qdrant, then search and watch your query move through the embedding space in real time.
+Supports **dual embedding modes** depending on the presence of `OPENAI_API_KEY`:
+- **OpenAI Mode** (Default): Uses OpenAI `text-embedding-3-small` (1536 dimensions) for premium cloud-based embeddings and GPT-4o-mini for chat intent classification.
+- **Local Fallback Mode**: Automatically activates if no `OPENAI_API_KEY` is provided. Uses `sentence-transformers/all-MiniLM-L12-v2` (384 dimensions) running locally, and classifies intents via cosine similarity.
+
+Qdrant collections are segregated dynamically (e.g. `documents_1536` vs `documents_384`) to prevent vector shape conflicts.
 
 ## Stack
 
-- **Backend** — FastAPI + OpenAI Embeddings + Qdrant
-- **Frontend** — Streamlit with interactive Plotly PCA scatter
+- **Backend** — FastAPI + OpenAI Embeddings OR local Hugging Face all-MiniLM + Qdrant
+- **Frontend** — Streamlit with interactive Plotly PCA scatter (compatible with any embedding size)
 
 ## Required secrets
 

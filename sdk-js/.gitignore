@@ -3,3 +3,5 @@ dist
 .env
 .npmrc
 *.log
+horribleprogram-sdk-*.tgz
+.claude

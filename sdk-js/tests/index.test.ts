@@ -1,76 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Botcierge, query_intent } from '../src/index';
 
-// Mock global fetch
-global.fetch = vi.fn();
-
-describe('Botcierge SDK', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
+describe('Botcierge SDK (Local Mode)', () => {
   describe('Botcierge Class', () => {
-    it('should use the provided baseUrl', async () => {
-      const customUrl = 'https://api.example.com';
-      const client = new Botcierge({ baseUrl: customUrl });
-      
-      const mockResult = {
-        domain: 'test-domain',
-        intent: 'test-intent',
-        confidence: 'high',
-        scores: { 'test-intent': 0.9 }
-      };
-
-      (fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockResult,
-      });
-
-      await client.query_intent('hello');
-
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining(customUrl),
-        expect.any(Object)
-      );
-    });
-
-    it('should throw an error if the API response is not ok', async () => {
+    it('should correctly classify an utterance locally', async () => {
       const client = new Botcierge();
-      
-      (fetch as any).mockResolvedValue({
-        ok: false,
-        statusText: 'Forbidden',
-        json: async () => ({ detail: 'Invalid token' }),
-      });
+      const result = await client.query_intent('I am hungry');
 
-      await expect(client.query_intent('hello')).rejects.toThrow('Botcierge API error: Invalid token');
+      expect(result.domain).toBe('FOODLINK');
+      expect(result.intent).toBe('request_food');
+      expect(result.confidence).toBe('high');
+      expect(result.scores).toBeDefined();
+      expect(result.scores?.['request_food']).toBeGreaterThan(0.5);
     });
   });
 
   describe('query_intent helper', () => {
-    it('should correctly classify an utterance using the default client', async () => {
-      const mockResult = {
-        domain: 'moneyshare',
-        intent: 'request_loan',
-        confidence: 'high',
-        scores: { 'request_loan': 0.95 }
-      };
+    it('should correctly classify an utterance using the helper', async () => {
+      const result = await query_intent('I have food to share');
 
-      (fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => mockResult,
-      });
-
-      const result = await query_intent('can I borrow some money');
-
-      expect(result).toEqual(mockResult);
-      expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8000/classify',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ utterance: 'can I borrow some money' })
-        })
-      );
+      expect(result.domain).toBe('FOODLINK');
+      expect(result.intent).toBe('share_food');
+      expect(result.confidence).toBe('high');
     });
   });
 });
+
+

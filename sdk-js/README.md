@@ -1,97 +1,107 @@
-# @botcierge/sdk
+# @horribleprogram/sdk
 
-[![npm version](https://img.shields.io/npm/v/@botcierge/sdk.svg)](https://www.npmjs.com/package/@botcierge/sdk)
+[![npm version](https://img.shields.io/npm/v/@horribleprogram/sdk.svg)](https://www.npmjs.com/package/@horribleprogram/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Official JavaScript/TypeScript SDK for the **Botcierge Intent Classification API**.
+Official JavaScript/TypeScript SDK for **Botcierge Intent Classification**. 
+
+Starting with `v0.1.5`, the SDK runs **completely locally** on your machine. It loads the `sentence-transformers/all-MiniLM-L12-v2` model using ONNX runtime and performs classification via cosine similarity against a built-in static intents taxonomy.
+
+No API keys, configuration, or active internet connection (after first run) are required.
 
 ## Features
 
-- **TypeScript Native**: Full type definitions for all API responses.
-- **Lightweight**: Zero dependencies (uses native `fetch`).
-- **Flexible**: Easy to use for both simple scripts and complex applications.
-- **Cross-platform**: Works in Node.js, Browsers, and Edge environments.
+- **Purely Local**: High-speed offline intent classification with zero external API calls or latency.
+- **ONNX-Powered**: Powered by `@xenova/transformers` for running `all-MiniLM-L12-v2` locally.
+- **TypeScript Native**: Full type safety for class instances, options, and classification outputs.
+- **Automatic Caching**: Model weights (approx. 120MB) are downloaded automatically on the first run and cached locally.
 
 ## Installation
 
 ```bash
-npm install @botcierge/sdk
+npm install @horribleprogram/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { query_intent } from '@botcierge/sdk';
+import { query_intent } from '@horribleprogram/sdk';
 
-try {
-  const result = await query_intent("I'd like to share some food");
-  
-  console.log(`Domain: ${result.domain}`);         // foodshare
-  console.log(`Intent: ${result.intent}`);         // share_food
-  console.log(`Confidence: ${result.confidence}`); // high
-} catch (error) {
-  console.error("Classification failed:", error.message);
-}
+// On the first run, the local model will download and cache.
+const result = await query_intent("I'd like to share some food");
+
+console.log(result.domain);     // FOODLINK
+console.log(result.intent);     // share_food
+console.log(result.confidence); // high
+```
+
+## Usage
+
+### Simple Usage
+The simplest way to use the SDK is through the default helper function:
+
+```javascript
+import { query_intent } from '@horribleprogram/sdk';
+
+const result = await query_intent("I'm hungry");
+console.log(result);
+// { domain: 'FOODLINK', intent: 'request_food', confidence: 'high', scores: { request_food: 0.975 } }
+```
+
+### Dedicated Instance
+For class-based architectures, instantiate the `Botcierge` class:
+
+```javascript
+import { Botcierge } from '@horribleprogram/sdk';
+
+const client = new Botcierge();
+const result = await client.query_intent("I want to add milk to my list");
+console.log(result);
+// { domain: 'SHOP_SAVVY', intent: 'add_item', confidence: 'high', scores: { add_item: 0.884 } }
 ```
 
 ## API Reference
 
 ### `query_intent(utterance: string): Promise<IntentResult>`
-
-A helper function for quick classification using the default configuration (connecting to `http://localhost:8000`).
+Classifies a string using the default local instance.
 
 ### `class Botcierge`
-
-The main class for interacting with the Botcierge API.
-
 #### `constructor(config?: BotciergeConfig)`
-
-- `config.baseUrl`: The base URL of your Botcierge API (default: `http://localhost:8000`).
+Creates a new intent classification instance.
+- `config`: Currently empty (reserved for future options).
 
 #### `query_intent(utterance: string): Promise<IntentResult>`
-
-Classifies a string into a specific domain and intent.
+Classifies a string locally into a specific domain and intent.
 
 ### Types
 
 #### `IntentResult`
 ```typescript
 interface IntentResult {
-  domain: string;                   // The high-level category (e.g., 'moneyshare')
-  intent: string;                   // The specific action (e.g., 'request_loan')
+  domain: string;
+  intent: string;
   confidence: "high" | "medium" | "low";
-  scores: Record<string, number>;   // Raw similarity scores for all intents
-}
-```
-
-## Error Handling
-
-The SDK throws standard `Error` objects if the network request fails or if the API returns a non-2xx status code.
-
-```typescript
-import { Botcierge } from '@botcierge/sdk';
-
-const client = new Botcierge({ baseUrl: 'https://invalid-api.com' });
-
-try {
-  await client.query_intent("hello");
-} catch (e) {
-  console.log(e.message); // "Botcierge API error: ..."
+  scores?: Record<string, number>;
 }
 ```
 
 ## Development
 
-### Running Tests
-```bash
-npm test
-```
+To build and test the SDK locally:
 
-### Building
 ```bash
+# Clone the repository and install dependencies
+cd sdk-js
+npm install
+
+# Run unit tests
+npm test
+
+# Build files (CJS + ESM + DTS)
 npm run build
 ```
 
 ## License
 
 MIT © [horribleprogram](https://npmjs.com/~horribleprogram)
+
