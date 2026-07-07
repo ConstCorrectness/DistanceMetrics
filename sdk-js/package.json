@@ -1,6 +1,6 @@
 {
   "name": "@horribleprogram/sdk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "SDK for Botcierge Intent Classification",
   "type": "module",
   "main": "./dist/index.js",
