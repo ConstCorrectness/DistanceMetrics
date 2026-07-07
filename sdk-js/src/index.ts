@@ -146,3 +146,6 @@ export async function query_intent(utterance: string): Promise<IntentResult> {
   return defaultClient.query_intent(utterance);
 }
 
+export * from './companyEmbeddings';
+
+
