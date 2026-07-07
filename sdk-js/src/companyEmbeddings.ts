@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { MongoClient, Collection } from 'mongodb';
+import { MongoClient, Collection, MongoClientOptions } from 'mongodb';
 import { pipeline } from '@xenova/transformers';
 
 export interface Company {
@@ -25,6 +25,7 @@ export interface MongoEmbeddingConfig {
   collectionName?: string;
   openAIApiKey?: string;
   preferOpenAI?: boolean;
+  mongoOptions?: MongoClientOptions;
 }
 
 export function parseCSV(content: string): Record<string, string>[] {
@@ -159,6 +160,7 @@ export class CompanyEmbeddingManager {
       collectionName: config.collectionName || 'companies',
       openAIApiKey: config.openAIApiKey || process.env.OPENAI_API_KEY || '',
       preferOpenAI: config.preferOpenAI ?? !!(config.openAIApiKey || process.env.OPENAI_API_KEY),
+      mongoOptions: config.mongoOptions || {},
     };
   }
 
@@ -176,7 +178,7 @@ export class CompanyEmbeddingManager {
 
   async connect(): Promise<MongoClient> {
     if (!this.client) {
-      this.client = new MongoClient(this.config.uri);
+      this.client = new MongoClient(this.config.uri, this.config.mongoOptions);
       await this.client.connect();
     }
     return this.client;

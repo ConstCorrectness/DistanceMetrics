@@ -83,4 +83,22 @@ describe('Company Embeddings & MongoDB Integration', () => {
     const names = results.map(r => r.company_name);
     expect(names.includes('Antigravity Code Labs')).toBe(false);
   });
+
+  it('should accept mongoOptions (e.g. serverApi) in config', async () => {
+    const configWithApi = {
+      ...MONGO_CONFIG,
+      dbName: 'distance_metrics_options_test',
+      mongoOptions: {
+        serverApi: {
+          version: '1' as any,
+          strict: true,
+          deprecationErrors: true,
+        }
+      }
+    };
+    const manager = new CompanyEmbeddingManager(configWithApi);
+    const col = await manager.getCollection();
+    expect(col.collectionName).toBe('companies');
+    await manager.disconnect();
+  });
 });
